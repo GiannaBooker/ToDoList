@@ -6,8 +6,14 @@
 //
 
 import SwiftUI
-
 struct ContentView: View {
+    @Environment(\.managedObjectContext) var context
+    @FetchRequest(
+            entity: ToDo.entity(), sortDescriptors: [ NSSortDescriptor(keyPath: \ToDo.id, ascending: false) ])
+        
+    var toDoItems: FetchedResults<ToDo>
+    
+    @State private var showNewTask = false
     var body: some View {
         VStack {
         
@@ -18,16 +24,46 @@ struct ContentView: View {
                 
                 Spacer()
                 
-                Button(action: {}) {
+                Button(action: {self.showNewTask = true}) {
                 Text("+")
                 }
                
             } .padding()//closing hstack
             
-        Spacer()
+        
+            List {
+                ForEach (toDoItems) { toDoItem in
+                    if toDoItem.isImportant == true {
+                        Text("‼️" + (toDoItem.title ?? "No title"))
+                    } else {
+                        Text(toDoItem.title ?? "No title")
+                    }
+                            } .onDelete(perform: deleteTask)
+                
+            }//closing list
+            .listStyle(.plain)
+            Spacer()
         }// closing vstack
         
+        
+        
+        
+        if showNewTask {
+            NewToDoView(title: "", isImportant: false, showNewTask: $showNewTask)
+                }
+        
     }// closing body
+    private func deleteTask(offsets: IndexSet) {
+            withAnimation {
+                offsets.map { toDoItems[$0] }.forEach(context.delete)
+
+                do {
+                    try context.save()
+                } catch {
+                    print(error)
+                }
+            }
+        }
 }// closing content view
 
 struct ContentView_Previews: PreviewProvider {
